@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html ng-app="MarkSixApp">
+  <head>
+    <title>MarkSix</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="//netdna.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" rel="stylesheet" media="screen">
+	<script src="//ajax.googleapis.com/ajax/libs/angularjs/1.6.9/angular.min.js"></script>
+  </head>
+  <body>
+	<div ng-controller="MainController">
+		<h3>Generate mark six number!</h3>
+		<button ng-click="generate()">Generate!</button>
+		<p>Your number is {[{myNumbers}]}</p>
+		<p>The new marksix number is {[{marksix}]} so you {[{champ}]}</p>
+	</div>
+    <script src="//code.jquery.com/jquery-2.2.1.min.js"></script>
+    <script src="//netdna.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+	<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js"></script>
+	<script>
+		var app = angular.module("MarkSixApp", [])
+			.controller('MainController', function($scope, $http, socket){
+				var init = function(){
+					socket.on('new_marksix', function(result){
+						console.log(result);
+						$scope.marksix = result.arr;
+						var res = 
+							$scope.marksix[0] == $scope.myNumbers[0] && 
+							$scope.marksix[1] == $scope.myNumbers[1] && 
+							$scope.marksix[2] == $scope.myNumbers[2] && 
+							$scope.marksix[3] == $scope.myNumbers[3] && 
+							$scope.marksix[4] == $scope.myNumbers[4] && 
+							$scope.marksix[5] == $scope.myNumbers[5];
+						$scope.champ = res === true ? "Win!" : "lose..."
+					});
+				};
+				
+				init();
+				
+				$scope.myNumbers = [];
+				
+				$scope.generate = function(){
+					$scope.myNumbers = [];
+					for (var x = 0; x < 6; x++){
+						$scope.myNumbers.push(Math.floor((Math.random() * 49) + 1));
+					}
+				};
+			
+			});
+			
+			app.config(function($interpolateProvider) {
+			  $interpolateProvider.startSymbol('{[{');
+			  $interpolateProvider.endSymbol('}]}');
+			});
+			
+			app.factory('socket', function ($rootScope) {
+			  var socket = io.connect("http://localhost:5000");
+			  return {
+				on: function (eventName, callback) {
+				  socket.on(eventName, function () {  
+					var args = arguments;
+					$rootScope.$apply(function () {
+					  callback.apply(socket, args);
+					});
+				  });
+				},
+				emit: function (eventName, data, callback) {
+				  socket.emit(eventName, data, function () {
+					var args = arguments;
+					$rootScope.$apply(function () {
+					  if (callback) {
+						callback.apply(socket, args);
+					  }
+					});
+				  })
+				}
+			  };
+			});
+	</script>
+  </body>
+</html>
